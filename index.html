@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bangor Water Level</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header>
+<h1>Bangor Water Level</h1>
+<p id="updated">Updating...</p>
+</header>
+<section class="cards">
+<div class="card"><h2>Current Level</h2><div id="level">--</div></div>
+<div class="card"><h2>Gauge</h2><div id="gauge">--</div></div>
+<div class="card"><h2>Trend</h2><div id="trend">--</div></div>
+</section>
+<section class="filters">
+<button>6h</button><button>12h</button><button>24h</button><button>48h</button><button>7d</button><button>3wk</button>
+</section>
+<canvas id="riverChart"></canvas>
+<script src="js/app.js"></script>
+<script src="js/chart.js"></script>
+</body>
+</html>
