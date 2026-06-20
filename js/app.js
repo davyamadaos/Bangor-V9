@@ -10,21 +10,25 @@ async function loadData() {
         const json = await res.json();
 
         if (!json || !json.rows) {
-            console.error('Invalid data', json);
+            console.error('Invalid data format:', json);
             return;
         }
 
         allData = json.rows
-            .map(r => ({
-                time: new Date(r.timestamp),
-                level: Number(r.absolute)
-            }))
-            .filter(d => !isNaN(d.level));
+            .map(r => {
+                const t = new Date(r.timestamp).getTime();
+                const level = Number(r.absolute);
+                return { time: t, level };
+            })
+            .filter(d => !isNaN(d.time) && !isNaN(d.level))
+            .sort((a, b) => a.time - b.time);
 
         render();
 
-        document.getElementById('updated').textContent =
-            'Updated: ' + new Date().toLocaleTimeString();
+        const updatedEl = document.getElementById('updated');
+        if (updatedEl) {
+            updatedEl.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+        }
 
     } catch (e) {
         console.error('Load error:', e);
@@ -42,7 +46,6 @@ function getFiltered() {
     const latestTime = allData[allData.length - 1].time;
 
     let hours = 99999;
-
     if (currentRange === '6h') hours = 6;
     if (currentRange === '12h') hours = 12;
     if (currentRange === '24h') hours = 24;
@@ -50,31 +53,32 @@ function getFiltered() {
     if (currentRange === '7d') hours = 168;
     if (currentRange === '3wk') hours = 504;
 
-    return allData.filter(d =>
-        (latestTime - d.time) / 3600000 <= hours
-    );
+    return allData.filter(d => (latestTime - d.time) / 3600000 <= hours);
 }
 
 function render() {
     const data = getFiltered();
-    if (!data.length) return;
+
+    if (!data.length) {
+        console.warn('No chart data available');
+        return;
+    }
 
     const latest = data[data.length - 1];
 
     document.getElementById('level').textContent = latest.level.toFixed(3);
     document.getElementById('gauge').textContent = GAUGE(latest.level).toFixed(1);
 
-    const first = data[Math.max(0, data.length - 8)];
-    const rate = (latest.level - first.level) /
-        ((latest.time - first.time) / 3600000);
+    const first = data[Math.max(0, data.length - 10)];
+    const rate = (latest.level - first.level) / ((latest.time - first.time) / 3600000);
 
     const trendEl = document.getElementById('trend');
     trendEl.textContent = rate > 0 ? 'Rising' : 'Falling';
     trendEl.style.color = rate > 0 ? '#2ED573' : '#FF4757';
 
-    const labels = data.map(d => d.time);
-    const levelData = data.map(d => d.level);
-    const gaugeData = data.map(d => GAUGE(d.level));
+    // IMPORTANT: V4-STABLE CHART FORMAT (x/y pairs)
+    const levelSeries = data.map(d => ({ x: d.time, y: d.level }));
+    const gaugeSeries = data.map(d => ({ x: d.time, y: GAUGE(d.level) }));
 
     if (!chart) {
         chart = new Chart(document.getElementById('riverChart'), {
@@ -83,7 +87,7 @@ function render() {
                 datasets: [
                     {
                         label: 'Level (m)',
-                        data: levelData,
+                        data: levelSeries,
                         borderColor: '#36A2FF',
                         borderWidth: 3,
                         pointRadius: 0,
@@ -92,7 +96,7 @@ function render() {
                     },
                     {
                         label: 'Gauge',
-                        data: gaugeData,
+                        data: gaugeSeries,
                         borderColor: '#FFC533',
                         borderWidth: 2,
                         pointRadius: 0,
@@ -104,15 +108,20 @@ function render() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                parsing: false,
                 interaction: {
-                    intersect: false,
-                    mode: 'index'
+                    mode: 'index',
+                    intersect: false
                 },
                 scales: {
                     x: {
                         type: 'time',
                         time: {
                             tooltipFormat: 'dd/MM HH:mm'
+                        },
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true
                         }
                     },
                     y: {
@@ -134,9 +143,8 @@ function render() {
             }
         });
     } else {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = levelData;
-        chart.data.datasets[1].data = gaugeData;
+        chart.data.datasets[0].data = levelSeries;
+        chart.data.datasets[1].data = gaugeSeries;
         chart.update();
     }
 }
