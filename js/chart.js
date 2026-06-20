@@ -1,1 +1,0 @@
-const ctx=document.getElementById('riverChart');new Chart(ctx,{type:'line',data:{labels:['12:00','13:00','14:00'],datasets:[{label:'EPA Level',data:[99.31,99.33,99.34],borderColor:'cyan',yAxisID:'y'},{label:'Gauge',data:[-194.0,-193.7,-193.5],borderColor:'orange',yAxisID:'y1'}]},options:{responsive:true,scales:{y:{position:'left'},y1:{position:'right'}}}});
