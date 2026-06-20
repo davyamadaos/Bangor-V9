@@ -1,0 +1,1 @@
+fetch('data/current.json').then(r=>r.json()).then(data=>{document.getElementById('level').textContent=data.level.toFixed(3)+' m';document.getElementById('gauge').textContent=data.gauge.toFixed(1);document.getElementById('trend').textContent=data.trend;document.getElementById('updated').textContent='Updated '+data.time;});
