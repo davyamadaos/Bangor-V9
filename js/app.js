@@ -16,9 +16,10 @@ async function loadData() {
 
         allData = json.rows
             .map(r => {
-                const t = new Date(r.timestamp).getTime();
-                const level = Number(r.absolute);
-                return { time: t, level };
+                const rawTime = r.timestamp || r.t || r.date;
+                const time = new Date(rawTime).getTime();
+                const level = Number(r.absolute ?? r.level ?? r.value);
+                return { time, level };
             })
             .filter(d => !isNaN(d.time) && !isNaN(d.level))
             .sort((a, b) => a.time - b.time);
@@ -60,7 +61,7 @@ function render() {
     const data = getFiltered();
 
     if (!data.length) {
-        console.warn('No chart data available');
+        console.warn('No data to render');
         return;
     }
 
@@ -76,7 +77,6 @@ function render() {
     trendEl.textContent = rate > 0 ? 'Rising' : 'Falling';
     trendEl.style.color = rate > 0 ? '#2ED573' : '#FF4757';
 
-    // IMPORTANT: V4-STABLE CHART FORMAT (x/y pairs)
     const levelSeries = data.map(d => ({ x: d.time, y: d.level }));
     const gaugeSeries = data.map(d => ({ x: d.time, y: GAUGE(d.level) }));
 
@@ -109,36 +109,15 @@ function render() {
                 responsive: true,
                 maintainAspectRatio: false,
                 parsing: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
+                interaction: { mode: 'index', intersect: false },
                 scales: {
                     x: {
                         type: 'time',
-                        time: {
-                            tooltipFormat: 'dd/MM HH:mm'
-                        },
-                        ticks: {
-                            maxRotation: 0,
-                            autoSkip: true
-                        }
+                        time: { tooltipFormat: 'dd/MM HH:mm' },
+                        ticks: { maxRotation: 0, autoSkip: true }
                     },
-                    y: {
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Level (m)'
-                        }
-                    },
-                    y1: {
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        title: {
-                            display: true,
-                            text: 'Gauge'
-                        }
-                    }
+                    y: { position: 'left' },
+                    y1: { position: 'right', grid: { drawOnChartArea: false } }
                 }
             }
         });
