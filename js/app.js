@@ -5,7 +5,7 @@ let currentRange = '12h';
 const GAUGE = (v) => (14.921 * v - 1675.7);
 
 async function loadData() {
-    const res = await fetch('./data/latest.json?v=' + Date.now());
+    const res = await fetch('./data/live.json?v=' + Date.now());
     const json = await res.json();
 
     if (!json.rows) return;
