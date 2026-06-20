@@ -1,0 +1,64 @@
+name: EPA Data Pipeline
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download EPA data
+        run: |
+          curl -L "https://epawebapp.epa.ie/Hydronet/output/internet/stations/CAS/33008/S/3_months.zip" -o data.zip
+          unzip -o data.zip -d data_raw
+
+      - name: Generate live JSON
+        run: |
+          python3 << 'EOF'
+import os, csv, json, glob
+
+csv_files = glob.glob("data_raw/**/*.csv", recursive=True)
+if not csv_files:
+    raise Exception("No CSV found")
+
+file_path = csv_files[0]
+
+rows = []
+
+with open(file_path, newline='') as f:
+    reader = csv.DictReader(f)
+    for r in reader:
+        ts = r.get('timestamp') or r.get('date') or r.get('time')
+        val = r.get('absolute') or r.get('level') or r.get('value')
+        if ts and val:
+            try:
+                rows.append({
+                    "timestamp": ts,
+                    "absolute": float(val)
+                })
+            except:
+                pass
+
+rows.sort(key=lambda x: x['timestamp'])
+
+os.makedirs("data", exist_ok=True)
+
+with open("data/live.json", "w") as f:
+    json.dump({"rows": rows}, f)
+
+print(f"Generated {len(rows)} rows")
+EOF
+
+      - name: Commit live data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/live.json
+          git commit -m "update live EPA data" || echo "no changes"
+          git push
