@@ -5,19 +5,30 @@ let currentRange = '12h';
 const GAUGE = (v) => (14.921 * v - 1675.7);
 
 async function loadData() {
-    const res = await fetch('./data/live.json?v=' + Date.now());
-    const json = await res.json();
+    try {
+        const res = await fetch('./data/live.json?v=' + Date.now());
+        const json = await res.json();
 
-    if (!json.rows) return;
+        if (!json || !json.rows) {
+            console.error('Invalid data', json);
+            return;
+        }
 
-    allData = json.rows
-        .map(r => ({
-            time: new Date(r.timestamp),
-            level: Number(r.absolute)
-        }))
-        .filter(d => !isNaN(d.level));
+        allData = json.rows
+            .map(r => ({
+                time: new Date(r.timestamp),
+                level: Number(r.absolute)
+            }))
+            .filter(d => !isNaN(d.level));
 
-    render();
+        render();
+
+        document.getElementById('updated').textContent =
+            'Updated: ' + new Date().toLocaleTimeString();
+
+    } catch (e) {
+        console.error('Load error:', e);
+    }
 }
 
 function setRange(r) {
@@ -51,11 +62,9 @@ function render() {
     const latest = data[data.length - 1];
 
     document.getElementById('level').textContent = latest.level.toFixed(3);
-
     document.getElementById('gauge').textContent = GAUGE(latest.level).toFixed(1);
 
     const first = data[Math.max(0, data.length - 8)];
-
     const rate = (latest.level - first.level) /
         ((latest.time - first.time) / 3600000);
 
@@ -63,40 +72,73 @@ function render() {
     trendEl.textContent = rate > 0 ? 'Rising' : 'Falling';
     trendEl.style.color = rate > 0 ? '#2ED573' : '#FF4757';
 
-    if (chart) chart.destroy();
+    const labels = data.map(d => d.time);
+    const levelData = data.map(d => d.level);
+    const gaugeData = data.map(d => GAUGE(d.level));
 
-    chart = new Chart(document.getElementById('riverChart'), {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: 'River Level',
-                data: data.map(d => ({ x: d.time, y: d.level })),
-                borderColor: '#36A2FF',
-                borderWidth: 3,
-                pointRadius: 0,
-                tension: 0.25
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'nearest'
+    if (!chart) {
+        chart = new Chart(document.getElementById('riverChart'), {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: 'Level (m)',
+                        data: levelData,
+                        borderColor: '#36A2FF',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.25,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Gauge',
+                        data: gaugeData,
+                        borderColor: '#FFC533',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.25,
+                        yAxisID: 'y1'
+                    }
+                ]
             },
-            scales: {
-                x: {
-                    type: 'time'
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
                 },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Level (m)'
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            tooltipFormat: 'dd/MM HH:mm'
+                        }
+                    },
+                    y: {
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Level (m)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: {
+                            display: true,
+                            text: 'Gauge'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = levelData;
+        chart.data.datasets[1].data = gaugeData;
+        chart.update();
+    }
 }
 
 setInterval(loadData, 900000);
