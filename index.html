@@ -7,41 +7,33 @@
 <link rel="stylesheet" href="css/app.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
 
-<header class="header">
-  <h1>Bangor Water Level</h1>
-  <p id="updated">Loading...</p>
+<body class="fishing-mode">
+
+<header class="top">
+  <div class="title">Bangor Water Level</div>
+  <div id="updated" class="updated">Loading...</div>
 </header>
 
-<section class="cards">
-  <div class="card primary">
-    <div class="label">Current Level</div>
-    <div id="level" class="value">--</div>
-  </div>
-
-  <div class="card">
-    <div class="label">Gauge</div>
-    <div id="gauge" class="value">--</div>
-  </div>
-
-  <div class="card">
-    <div class="label">Trend</div>
-    <div id="trend" class="value">--</div>
+<section class="hero">
+  <div class="big-level" id="level">--</div>
+  <div class="sub-row">
+    <div class="badge" id="trend">--</div>
+    <div class="badge" id="gauge">--</div>
   </div>
 </section>
 
-<section class="epa-image">
-  <img src="https://epawebapp.epa.ie/Hydronet/output/internet/stations/CAS/33008/S/extralarge_3m_extralarge.png" />
+<section class="epa">
+  <img src="https://epawebapp.epa.ie/Hydronet/output/internet/stations/CAS/33008/S/extralarge_3m_extralarge.png" alt="EPA Chart" />
 </section>
 
 <section class="filters">
-  <button data-range="6">6h</button>
-  <button data-range="12">12h</button>
-  <button data-range="24">24h</button>
-  <button data-range="48">48h</button>
-  <button data-range="168">7d</button>
-  <button data-range="504">3wk</button>
+  <button onclick="setRange('6h')">6h</button>
+  <button onclick="setRange('12h')">12h</button>
+  <button onclick="setRange('24h')">24h</button>
+  <button onclick="setRange('48h')">48h</button>
+  <button onclick="setRange('7d')">7d</button>
+  <button onclick="setRange('3wk')">3wk</button>
 </section>
 
 <section class="chart">
